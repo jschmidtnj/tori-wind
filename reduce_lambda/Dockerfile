@@ -25,4 +25,4 @@ COPY src .
 
 # run application
 WORKDIR "$function_dir"
-ENTRYPOINT "$function_dir/env/$env_name/bin/python" main.py
+ENTRYPOINT "$function_dir/env/$env_name/bin/python" -m awslambdaric main.lambda_handler

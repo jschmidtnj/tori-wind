@@ -7,7 +7,7 @@ from time import time
 from energy_calc_func import energy_calc
 
 
-def get_power(df_main: pd.DataFrame, output_dict: bool = False,
+def get_power(df_main: pd.DataFrame,
               output_all_columns: bool = True) -> Union[pd.DataFrame, Dict[Tuple[float, float], pd.Series]]:
     '''
     this function translates merra data, seperates each latitude 
@@ -105,9 +105,6 @@ def get_power(df_main: pd.DataFrame, output_dict: bool = False,
         power_data[latlong] = power_output
 
     print('calculate power time', time() - start_time)
-
-    if output_dict:
-        return power_data
 
     start_time = time()
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import os
-import atexit
+
+# TODO - download, concat, output
 
 import pandas as pd
 import boto3
 
 from dotenv import load_dotenv
-from pymongo import MongoClient
 
 load_dotenv()
 
@@ -17,25 +17,7 @@ output_main = 'output'
 
 epsilon = 1e-6
 
-# TODO - figure out what emissions should be
-emissions = 1e6
-
-mongo_client: MongoClient = None
-
-
-def close_mongo():
-    mongo_client.close()
-
-
-def initialize_mongo_connection():
-    global mongo_client
-    mongo_uri = os.getenv('MONGO_URI')
-    if not mongo_uri:
-        raise ValueError('cannot find mongo uri')
-
-    mongo_client = MongoClient(mongo_uri)
-
-    atexit.register(close_mongo)
+emissions = 1227780.21 # kg
 
 
 def download_database() -> pd.DataFrame:
@@ -54,6 +36,7 @@ def download_database() -> pd.DataFrame:
         lambda x: x['power_output'] + epsilon, axis=1)
     df['carbon_footprint'] = df.apply(
         lambda x: emissions / (x['power_output'] * 20 / 1000), axis=1)
+    df['sed'] = df['sed'] / (365 * 24)
     df['emissions_carbon_capture'] = df.apply(
         lambda x: x['carbon_footprint'] * x['sed'], axis=1)
 
@@ -71,7 +54,6 @@ def save_s3(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    initialize_mongo_connection()
     df = download_database()
     print(df.head(5))
     print(df.shape)

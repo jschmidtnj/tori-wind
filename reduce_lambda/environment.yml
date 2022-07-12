@@ -80,7 +80,6 @@ dependencies:
   - pip=22.1.2
   - psutil=5.9.1
   - pycparser=2.21
-  - pymongo=4.1.1
   - pyopenssl=22.0.0
   - pyparsing=3.0.9
   - pysocks=1.7.1
