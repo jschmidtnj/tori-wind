@@ -3,7 +3,7 @@
 # abort on errors
 set -e
 
-env_name="wind-prod"
+env_name="wind"
 
 env_file_name="environment.yml"
 
@@ -13,8 +13,6 @@ conda activate "$env_name"
 
 # save current environment to file
 conda env export --no-builds | grep -v "^prefix: " > "$env_file_name"
-
-cp "$env_file_name" "../download_data/$env_file_name"
 
 conda deactivate
 
