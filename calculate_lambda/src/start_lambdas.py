@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from tkinter import E
 from typing import List
 
 import numpy as np
@@ -8,13 +9,13 @@ import json
 
 from dotenv import load_dotenv
 from glob import glob
-from click import confirm
+from click import confirm, prompt
 from tqdm import tqdm
 
 load_dotenv()
 
 # account lambda limit
-lambda_limit = 1100
+lambda_limit = 1200
 
 s3 = boto3.client('s3')
 lmda = boto3.client('lambda')
@@ -26,7 +27,7 @@ output_compressed = 'output_compressed'
 input_bucket_folder = 'World_2019'
 
 data_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '../data', 'World_2019', '11111'))
+    os.path.dirname(__file__), '../../data', 'World_2019', '11111'))
 
 
 def get_s3_keys(prefix='') -> List[str]:
@@ -36,8 +37,8 @@ def get_s3_keys(prefix='') -> List[str]:
             yield content['Key']
 
 
-def main(num_per_lambda, use_filesystem=True, folder_names=[], exclude_folder_names=[],
-         check_file_complete=False, compressed=False, max_lambdas=-1):
+def main(num_per_lambda: int, use_filesystem=True, folder_names=[], exclude_folder_names=[],
+         check_file_complete=False, compressed=False, max_lambdas=-1, run_local=False):
     folder_names = set(folder_names)
     exclude_folder_names = set(exclude_folder_names)
 
@@ -74,8 +75,13 @@ def main(num_per_lambda, use_filesystem=True, folder_names=[], exclude_folder_na
     if check_file_complete:
         print('check completed files...')
         output_bucket_folder = output_compressed if compressed else output_main
+
+        prefix = output_bucket_folder
+        if len(folder_names) == 1:
+            prefix = os.path.join(prefix, list(folder_names)[0])
+
         all_output_keys = {key.split(output_bucket_folder)[
-            1][1:] for key in get_s3_keys(output_bucket_folder)}
+            1][1:] for key in get_s3_keys(prefix)}
         # print(all_output_keys)
 
         all_files = [file_name for file_name in all_files
@@ -85,16 +91,33 @@ def main(num_per_lambda, use_filesystem=True, folder_names=[], exclude_folder_na
 
     print('num files:', len(all_files))
 
+    if len(all_files) == 0:
+        print('no files')
+        return
+
+    run_local = confirm('Run locally?', default=run_local)
+
+    if not run_local:
+        num_per_lambda = prompt('Number files per lambda', type=int, default=num_per_lambda)
+
+    if num_per_lambda < 1:
+        raise ValueError(f'num per lambda {num_per_lambda} is less than 1')
+
     num_lambdas = len(all_files) // num_per_lambda
 
-    print('num lambdas:', num_lambdas)
+    if run_local:
+        print('num lambdas:', num_lambdas)
 
     assert max_lambdas != -1 or num_lambdas <= lambda_limit
 
-    # print(all_files)
+    if confirm('Show files?', default=False):
+        print(all_files)
 
     if not confirm('Do you want to continue?', default=True):
         exit()
+
+    if run_local:
+        from main import lambda_handler
 
     for i, curr_files in enumerate(np.array_split(all_files, num_lambdas)):
         curr_files = curr_files.tolist()
@@ -102,13 +125,17 @@ def main(num_per_lambda, use_filesystem=True, folder_names=[], exclude_folder_na
 
         payload = json.dumps({
             'files': curr_files,
-            'compressed': True
+            'compressed': compressed
         })
-        response = lmda.invoke(
-            FunctionName=lambda_function,
-            InvocationType='Event',
-            Payload=payload
-        )
+
+        if run_local:
+            response = lambda_handler(json.loads(payload))
+        else:
+            response = lmda.invoke(
+                FunctionName=lambda_function,
+                InvocationType='Event',
+                Payload=payload
+            )
         print(response)
 
         if i == max_lambdas - 1:
@@ -117,8 +144,5 @@ def main(num_per_lambda, use_filesystem=True, folder_names=[], exclude_folder_na
 
 if __name__ == '__main__':
     main(1, check_file_complete=True, compressed=True,
-         use_filesystem=False,
-         #  exclude_folder_names=[
-         #      'United States', 'China', 'Canada', 'Russia'],
-         folder_names=['United States']
+         use_filesystem=True, run_local=False,
          )

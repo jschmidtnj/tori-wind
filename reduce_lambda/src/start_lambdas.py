@@ -15,13 +15,12 @@ load_dotenv()
 s3 = boto3.client('s3')
 lmda = boto3.client('lambda')
 
-lambda_function = 'tori-wind-lambda'
-s3_bucket = 'tori-wind-reduce'
+lambda_function = 'tori-wind-reduce-lambda'
+s3_bucket = 'tori-calculate-wind-power'
 output_folder = 'output_aggregated'
-state_folder = os.path.join(output_folder, 'state')
 
 data_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '../data', 'World_2019', '11111'))
+    os.path.dirname(__file__), '../../data', 'World_2019', '11111'))
 
 
 def get_s3_keys(prefix='') -> List[str]:
@@ -32,14 +31,15 @@ def get_s3_keys(prefix='') -> List[str]:
 
 
 def main(use_filesystem=True, country_names=[], exclude_country_names=[],
-         check_countries_complete=False, max_lambdas=-1):
+         check_country_complete=False, max_lambdas=-1, run_local=False,
+         compressed=False):
     country_names = set(country_names)
     exclude_country_names = set(exclude_country_names)
 
     if use_filesystem:
         all_countries = os.listdir(data_folder)
     else:
-        file_path = os.path.join(os.path.dirname(__file__), 'countries.yml')
+        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../countries.yml'))
         with open(file_path, 'r') as f:
             all_countries = yaml.safe_load(f)
 
@@ -57,44 +57,48 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
                 new_all_countries.append(country_name)
         all_countries = new_all_countries
 
-    if check_countries_complete:
+    if check_country_complete:
         print('check completed countries...')
         new_all_countries = []
-        state_folders = list(get_s3_keys(state_folder))
-        state_countries = {key.split(state_folder)[
-            1][1:] for key in state_folders}
-        for country in all_countries:
-            if country not in state_countries:
-                new_all_countries.append(country)
+        output_keys = list(get_s3_keys(output_folder))
+        all_output_keys = {key.split(output_folder)[
+            1][1:] for key in output_keys}
 
-        for state_key in state_folders:
-            raw_data = s3.get_object(Bucket=s3_bucket, Key=state_key)['Body'].read()
-            completed_files = yaml.safe_load(raw_data)
-            if len(completed_files) < 365:
-                country_name = state_key.split(state_folder)[1][1:]
-                new_all_countries.append(country_name)
-
-        all_countries = new_all_countries
+        all_countries = [file_name for file_name in all_countries
+                         if file_name not in all_output_keys]
 
     all_countries.sort()
 
+    run_local = confirm('Run locally?', default=run_local)
+
     print('num countries / lambdas:', len(all_countries))
 
-    # print(all_countries)
+    if len(all_countries) == 0:
+        print('no countries')
+        return
+
+    if confirm('Show countries?', default=False):
+        print(all_countries)
 
     if not confirm('Do you want to continue?', default=True):
         exit()
 
-    for i, country_name in all_countries:
+    if run_local:
+        from main import lambda_handler
+
+    for i, country_name in enumerate(all_countries):
         payload = json.dumps({
             'country': country_name,
-            'compressed': True
+            'compressed': compressed
         })
-        response = lmda.invoke(
-            FunctionName=lambda_function,
-            InvocationType='Event',
-            Payload=payload
-        )
+        if run_local:
+            response = lambda_handler(json.loads(payload), local=run_local)
+        else:
+            response = lmda.invoke(
+                FunctionName=lambda_function,
+                InvocationType='Event',
+                Payload=payload
+            )
         print(response)
 
         if i == max_lambdas - 1:
@@ -102,9 +106,7 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
 
 
 if __name__ == '__main__':
-    main(65, check_file_complete=True, compressed=True,
+    main(check_country_complete=True, compressed=True,
          use_filesystem=False,
-         #  exclude_folder_names=[
-         #      'United States', 'China', 'Canada', 'Russia'],
-         folder_names=['Germany'],
-         max_lambdas=100)
+         country_names=['Germany'],
+         run_local=True)

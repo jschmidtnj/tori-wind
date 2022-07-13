@@ -111,22 +111,24 @@ def get_power(df_main: pd.DataFrame,
     if output_df is not None:
         output_df[output_col] = np.zeros(len(output_df))
 
-    output_data = {}
-
-    for latlon, df in sep_latlon.items():
-        for timestamp, row in df.iterrows():
-            if output_df is not None:
-                output_df.at[(timestamp, latlon[0], latlon[1]),
-                             output_col] = row[output_col]
-            else:
-                output_data[(timestamp, latlon[0], latlon[1])
-                            ] = row[output_col].item()
-
-    if output_df is None:
-        index = pd.MultiIndex.from_tuples(list(output_data.keys()), names=[
-            'time', 'latitude', 'longitude'])
-        output_df = pd.DataFrame(
-            list(output_data.values()), index=index, columns=[output_col])
+        for latlon, df in sep_latlon.items():
+            for timestamp, row in df.iterrows():
+                if output_df is not None:
+                    output_df.at[(timestamp, latlon[0], latlon[1]),
+                                 output_col] = row[output_col]
+    else:
+        all_df = []
+        for latlon, df in sep_latlon.items():
+            df = df[[output_col]]
+            latlon_arr = [[el] * len(df.index) for el in latlon]
+            tuples = zip(df.index, latlon_arr[0], latlon_arr[1])
+            index = pd.MultiIndex.from_tuples(tuples, names=[
+                'time', 'latitude', 'longitude'])
+            df.set_index(index, inplace=True)
+            all_df.append(df)
+        output_df = pd.concat(all_df)
+        output_df.columns = [output_col]
+        output_df.sort_index(axis=1, inplace=True)
 
     print('add to output time', time() - start_time)
 
@@ -134,7 +136,8 @@ def get_power(df_main: pd.DataFrame,
 
 
 if __name__ == '__main__':
-    input_file_path = '../data/World_2019/11111/United States/MERRA2_400.tavg1_2d_slv_Nx.20190101.nc4'
+    input_file_path = './data/input/United States/MERRA2_400.tavg1_2d_slv_Nx.20190101.nc4'
     with xr.open_mfdataset(input_file_path, combine='by_coords') as ds_wind:
         df_main = ds_wind.to_dataframe()
-    get_power(df_main)
+    df = get_power(df_main, output_all_columns=False)
+    print(df.head())
