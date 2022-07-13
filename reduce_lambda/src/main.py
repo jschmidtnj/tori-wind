@@ -10,7 +10,6 @@ import xarray as xr
 import boto3
 
 from dotenv import load_dotenv
-from tqdm import tqdm
 
 load_dotenv()
 
@@ -36,7 +35,7 @@ emissions = 1227780.21  # kg
 
 def get_s3_keys(prefix='') -> List[str]:
     paginator = s3.get_paginator('list_objects_v2')
-    for page in tqdm(paginator.paginate(Bucket=s3_bucket, Prefix=prefix)):
+    for page in paginator.paginate(Bucket=s3_bucket, Prefix=prefix):
         for content in page.get('Contents', ()):
             yield content['Key']
 

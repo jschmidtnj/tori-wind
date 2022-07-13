@@ -15,7 +15,7 @@ load_dotenv()
 s3 = boto3.client('s3')
 lmda = boto3.client('lambda')
 
-lambda_function = 'tori-wind-reduce-lambda'
+lambda_function = 'tori-reduce-wind-power'
 s3_bucket = 'tori-calculate-wind-power'
 output_folder = 'output_aggregated'
 
@@ -39,7 +39,8 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
     if use_filesystem:
         all_countries = os.listdir(data_folder)
     else:
-        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../countries.yml'))
+        file_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '../countries.yml'))
         with open(file_path, 'r') as f:
             all_countries = yaml.safe_load(f)
 
@@ -61,11 +62,10 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
         print('check completed countries...')
         new_all_countries = []
         output_keys = list(get_s3_keys(output_folder))
-        all_output_keys = {key.split(output_folder)[
-            1][1:] for key in output_keys}
+        all_output_countries = {os.path.splitext(os.path.basename(key))[0] for key in output_keys}
 
-        all_countries = [file_name for file_name in all_countries
-                         if file_name not in all_output_keys]
+        all_countries = [country_name for country_name in all_countries
+                         if country_name not in all_output_countries]
 
     all_countries.sort()
 
@@ -108,5 +108,4 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
 if __name__ == '__main__':
     main(check_country_complete=True, compressed=True,
          use_filesystem=False,
-         country_names=['Germany'],
-         run_local=True)
+         run_local=False)
