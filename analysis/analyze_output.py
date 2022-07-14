@@ -7,7 +7,7 @@ import boto3
 import os
 
 s3_bucket = 'tori-calculate-wind-power'
-bucket_folder = 'output'
+bucket_folder = 'output_compressed'
 
 s3 = boto3.client('s3')
 
@@ -34,8 +34,8 @@ def count_files():
     print('num target:', num_target)
     remaining = [(name, cnt) for name, cnt in count.items() if cnt < target]
     print('remaining:', len(remaining))
-
-    # print([name for name, _cnt in remaining])
+    print(remaining)
+    print([name for name, _cnt in remaining])
 
 
 if __name__ == '__main__':

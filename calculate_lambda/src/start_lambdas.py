@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-from tkinter import E
+from time import sleep
 from typing import List
 
 import numpy as np
@@ -106,9 +106,9 @@ def main(num_per_lambda: int = 50, use_filesystem=True, folder_names=[], exclude
     if num_per_lambda < 1:
         raise ValueError(f'num per lambda {num_per_lambda} is less than 1')
 
-    num_lambdas = len(all_files) // num_per_lambda
+    num_lambdas = np.ceil(len(all_files) / num_per_lambda)
 
-    if run_local:
+    if not run_local:
         print('num lambdas:', num_lambdas)
 
     assert max_lambdas != -1 or num_lambdas <= lambda_limit
@@ -146,7 +146,22 @@ def main(num_per_lambda: int = 50, use_filesystem=True, folder_names=[], exclude
 
 
 if __name__ == '__main__':
-    main(num_per_lambda=100, check_file_complete=False, compressed=True,
-         use_filesystem=False, run_local=False,
-         folder_names=['Afghanistan']
+    large_files = ['Antarctica', 'Canada',
+                   'New Zealand', 'Russia', 'United States']
+
+    main(num_per_lambda=100, check_file_complete=True, compressed=True,
+         use_filesystem=True, run_local=False,
+         exclude_folder_names=large_files
+         )
+
+    main(num_per_lambda=10, check_file_complete=True, compressed=True,
+         use_filesystem=True, run_local=False,
+         folder_names=large_files
+         )
+
+    # wait, then run the rest
+
+    sleep(60 * 15)
+    main(num_per_lambda=10, check_file_complete=True, compressed=True,
+         use_filesystem=True, run_local=False,
          )

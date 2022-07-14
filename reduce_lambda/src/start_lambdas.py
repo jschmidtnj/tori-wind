@@ -62,7 +62,8 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
         print('check completed countries...')
         new_all_countries = []
         output_keys = list(get_s3_keys(output_folder))
-        all_output_countries = {os.path.splitext(os.path.basename(key))[0] for key in output_keys}
+        all_output_countries = {os.path.splitext(os.path.basename(key))[
+            0] for key in output_keys}
 
         all_countries = [country_name for country_name in all_countries
                          if country_name not in all_output_countries]
@@ -106,7 +107,6 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
 
 
 if __name__ == '__main__':
-    main(check_country_complete=False, compressed=True,
+    main(check_country_complete=True, compressed=True,
          use_filesystem=False,
-         run_local=True,
-         country_names=['Afghanistan'])
+         run_local=False)
