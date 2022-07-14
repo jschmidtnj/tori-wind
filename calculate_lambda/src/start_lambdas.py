@@ -37,7 +37,7 @@ def get_s3_keys(prefix='') -> List[str]:
             yield content['Key']
 
 
-def main(num_per_lambda: int, use_filesystem=True, folder_names=[], exclude_folder_names=[],
+def main(num_per_lambda: int = 50, use_filesystem=True, folder_names=[], exclude_folder_names=[],
          check_file_complete=False, compressed=False, max_lambdas=-1, run_local=False):
     folder_names = set(folder_names)
     exclude_folder_names = set(exclude_folder_names)
@@ -98,7 +98,10 @@ def main(num_per_lambda: int, use_filesystem=True, folder_names=[], exclude_fold
     run_local = confirm('Run locally?', default=run_local)
 
     if not run_local:
-        num_per_lambda = prompt('Number files per lambda', type=int, default=num_per_lambda)
+        num_per_lambda = prompt('Number files per lambda',
+                                type=int, default=num_per_lambda)
+    else:
+        num_per_lambda = len(all_files)
 
     if num_per_lambda < 1:
         raise ValueError(f'num per lambda {num_per_lambda} is less than 1')
@@ -143,6 +146,7 @@ def main(num_per_lambda: int, use_filesystem=True, folder_names=[], exclude_fold
 
 
 if __name__ == '__main__':
-    main(1, check_file_complete=True, compressed=True,
-         use_filesystem=True, run_local=False,
+    main(num_per_lambda=100, check_file_complete=False, compressed=True,
+         use_filesystem=False, run_local=False,
+         folder_names=['Afghanistan']
          )

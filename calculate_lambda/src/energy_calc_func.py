@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 import windpowerlib as wpl
+import pandas as pd
+
+# 0.15 roughness length
 
 enercon_e82 = {
     "turbine_type": "E-82/2300",  # turbine type as in register
@@ -24,7 +27,7 @@ modelchain_data = {
 
 mc_e82 = wpl.ModelChain(e82, **modelchain_data)
 
-def energy_calc(weather_df) -> float:
+def energy_calc(weather_df) -> pd.Series:
     model_data = mc_e82.run_model(weather_df)
 
     power_output = model_data.power_output

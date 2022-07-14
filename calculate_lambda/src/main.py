@@ -5,7 +5,6 @@ from time import time
 import traceback
 
 import xarray as xr
-import pandas as pd
 import boto3
 
 from dotenv import load_dotenv
@@ -48,9 +47,12 @@ def process_file(file_path, output_all_columns=False) -> None:
 
     # get data
     output_df = get_power(df_main, output_all_columns)
+    start_time = time()
     sed_df = get_sed(df_main)
+    print('time calculate sed', time() - start_time)
+
     output_df['sed'] = sed_df['sed']
-    output_df = output_df.groupby(['latitude', 'longitude'])[
+    output_df = output_df.groupby(['lat', 'lon'])[
         ['sed', 'power_output']].sum()
 
     output_file_path = input_file_path
@@ -77,7 +79,7 @@ def process_file(file_path, output_all_columns=False) -> None:
 
 def lambda_handler(event, _context=None):
     file_paths = event['files']
-    compressed = 'compressed' in event
+    compressed = 'compressed' in event and event['compressed']
     print(f'lambda start {file_paths[0]} end {file_paths[-1]}')
 
     for i, file_path in enumerate(file_paths):
@@ -86,7 +88,9 @@ def lambda_handler(event, _context=None):
         print(
             f'processing file {i + 1}, {file_name} for country {country_name}')
         try:
+            start_time = time()
             process_file(file_path, not compressed)
+            print('time to process', time() - start_time)
         except Exception:
             print(
                 f'error processing file: {file_path}', traceback.format_exc())

@@ -106,6 +106,7 @@ def main(use_filesystem=True, country_names=[], exclude_country_names=[],
 
 
 if __name__ == '__main__':
-    main(check_country_complete=True, compressed=True,
+    main(check_country_complete=False, compressed=True,
          use_filesystem=False,
-         run_local=False)
+         run_local=True,
+         country_names=['Afghanistan'])

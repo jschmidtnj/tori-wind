@@ -92,7 +92,7 @@ def save_s3(df: pd.DataFrame, country_name: str) -> None:
 
 def lambda_handler(event, _context=None, local=False):
     country_name = event['country']
-    compressed = 'compressed' in event
+    compressed = 'compressed' in event and event['compressed']
 
     folder_path = download_files(country_name, local, compressed=compressed)
     df = read_data(folder_path)
